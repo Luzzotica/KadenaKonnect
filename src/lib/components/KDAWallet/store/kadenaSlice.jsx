@@ -1,8 +1,19 @@
 import { createSlice } from '@reduxjs/toolkit';
 import { EVENT_NEW_MSG, EVENT_NEW_TX, EVENT_WALLET_CONNECT } from '../constants/constants';
 import providers from '../providers/providers';
+import { tryLoadLocal, trySaveLocal } from '../utils/store';
 import { createPactCommand, createSigningCommand, listen, localCommand, sendCommand } from '../utils/utils';
 import { hideConnectWalletModal } from './connectWalletModalSlice';
+
+const STORE_ACCOUNT_KEY = 'STORE_ACCOUNT_KEY';
+const STORE_PUBKEY_KEY = 'STORE_PUBKEY_KEY';
+const STORE_PROVIDER_KEY = 'STORE_PROVIDER_KEY';
+var loadedProvider = tryLoadLocal(STORE_PROVIDER_KEY);
+var loadedAccount = tryLoadLocal(STORE_ACCOUNT_KEY);
+var loadedPubKey = tryLoadLocal(STORE_PUBKEY_KEY);
+if (loadedProvider === null) { loadedProvider = ''; }
+if (loadedAccount === null) { loadedAccount = ''; }
+if (loadedPubKey === null) { loadedPubKey = ''; }
 
 export const kadenaSlice = createSlice({
   name: 'kadenaInfo',
@@ -10,9 +21,9 @@ export const kadenaSlice = createSlice({
     network: import.meta.env.VITE_NETWORK,
     networkId: import.meta.env.VITE_NETWORK_ID,
     ttl: 600,
-    provider: '',
-    account: '',
-    pubKey: '',
+    provider: loadedProvider,
+    account: loadedAccount,
+    pubKey: loadedPubKey,
     transactions: [],
     newTransaction: {},
     messages: [],
@@ -72,6 +83,9 @@ export const connectWithProvider = (providerId) => {
       dispatch(kadenaSlice.actions.setProvider(providerId));
       dispatch(kadenaSlice.actions.setAccount(connectResult.account.account));
       dispatch(kadenaSlice.actions.setPubKey(connectResult.account.publicKey));
+      trySaveLocal(STORE_PROVIDER_KEY, providerId);
+      trySaveLocal(STORE_ACCOUNT_KEY, connectResult.account.account);
+      trySaveLocal(STORE_PUBKEY_KEY, connectResult.account.publicKey);
       dispatch(hideConnectWalletModal());
 
       const event = new CustomEvent(EVENT_WALLET_CONNECT, { detail: providerId });
@@ -91,6 +105,7 @@ export const connectWithProvider = (providerId) => {
 
 export const disconnectProvider = () => {
   return async function(dispatch, getState) {
+    console.log(getState().kadenaInfo.provider);
     let provider = providers[getState().kadenaInfo.provider];
     let disconnectResult = await provider.disconnect(getState);
     // console.log(disconnectResult);
@@ -99,6 +114,10 @@ export const disconnectProvider = () => {
       dispatch(kadenaSlice.actions.setAccount(""));
       dispatch(kadenaSlice.actions.setProvider(""));
       dispatch(kadenaSlice.actions.setPubKey(""));
+      trySaveLocal(STORE_PROVIDER_KEY, '');
+      trySaveLocal(STORE_ACCOUNT_KEY, '');
+      trySaveLocal(STORE_PUBKEY_KEY, '');
+
       const msg = {
         type: 'success',
         data: `Disconnected from ${provider.name}`,

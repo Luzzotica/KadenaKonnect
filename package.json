@@ -1,7 +1,7 @@
 {
   "name": "kadenakonnect",
   "version": "1.0.0",
-  "private": true,
+  "private": false,
   "description": "Handles connecting to Kadena enabled wallets: X-Wallet, Zelcore, Chainweaver, Koala Wallet, and Wallet Connect",
   "main": "dist/index.js",
   "module": "dist/index.js",
